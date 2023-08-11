@@ -1,0 +1,19 @@
+function cutVideo() {
+  const videoPath = `C://Program Files/nodejs/uploaed_files/${videoID}.mp4`;
+  ffmpeg(`https://www.youtube.com/watch?v=${videoID}`)
+    .output(videoPath)
+    .on("end", () => {
+      // Cut the video
+      const outputPath = `C://Program Files/nodejs/uploaded_files/${videoID}_cut.mp4`;
+      ffmpeg(videoPath)
+        .setStartTime(start)
+        .setDuration(end - start)
+        .output(outputPath)
+        .on("end", () => {
+          console.log("Video cutting completed.");
+          const cutVideoPath = outputPath;
+          socket.send(JSON.stringify({ status: "succeess", cutVideoPath }));
+        })
+        .run();
+    });
+}
