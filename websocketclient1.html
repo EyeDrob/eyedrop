@@ -9,118 +9,63 @@
       #video-player {
         width: 800px;
         height: 600px;
+        margin-top: 50px;
       }
-      div {
-        margin-bottom: 25px;
+      .container {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .youtube,
+      .uploaded-video {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .youtube div,
+      .uploaded-video div {
+        margin: 10px 0;
+      }
+
+      .uploaded-video {
+        margin-left: 20px;
       }
     </style>
   </head>
   <body>
-    <div>
-      <video id="video-player" controls></video>
-      <select id="file-list"></select>
-      <button id="play-selected-button">재생</button>
+    <div class="container">
+      <div class="youtube">
+        <div>
+          <video id="player"></video>
+        </div>
+        <div>
+          <label for="url">유튜브 URL</label>
+          <input type="text" id="url" />
+          <button onclick="loadVideo()">유튜브 영상 불러오기</button>
+        </div>
+        <br />
+        <label for="start">시작 시간:</label>
+        <input type="number" id="start" value="0" />
+        <label for="end">종료 시간:</label>
+        <input type="number" id="end" value="0" />
+        <button id="time-submit" onclick="submitTimeRange()">설정</button>
+      </div>
+      <div class="uploaded-video">
+        <div>
+          <video id="video-player" controls></video>
+        </div>
+        <div>
+          <select id="file-list"></select>
+          <button id="play-selected-button">재생</button>
+        </div>
+        <div class="upload" id="upload">
+          <input type="file" id="file-input" accept="video/*" />
+          <button id="upload-button">업로드</button>
+        </div>
+      </div>
     </div>
-    <div class="upload" id="upload">
-      <input type="file" id="file-input" accept="video/*" />
-      <button id="upload-button">업로드</button>
-    </div>
-
-    <script>
-      const socket = new WebSocket("ws://localhost:8080");
-      const videoPlayer = document.querySelector("video-player");
-
-      socket.addEventListener("open", (event) => {
-        console.log("Connected to server");
-
-        // 파일 목록 요청
-        socket.send(JSON.stringify({ type: "getFiles" }));
-      });
-
-      socket.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "id") {
-          const clientId = data.id;
-
-          const uploadButton = document.querySelector("#upload-button");
-          const fileList = document.querySelector("#file-list");
-
-          const videoPlayer = document.querySelector("#video-player");
-
-          // 파일 업로드 버튼 클릭 시
-          uploadButton.addEventListener("click", () => {
-            const file = document.querySelector("#file-input").files[0];
-            const chunkSize = 1024 * 1024; // 1MB
-
-            const reader = new FileReader();
-            let chunkIndex = 0;
-
-            reader.onload = async (e) => {
-              const fileData = e.target.result;
-              const totalChunks = Math.ceil(fileData.byteLength / chunkSize);
-
-              while (chunkIndex < totalChunks) {
-                const chunk = fileData.slice(
-                  chunkIndex * chunkSize,
-                  (chunkIndex + 1) * chunkSize
-                );
-                const isLastChunk = chunkIndex === totalChunks - 1;
-
-                socket.send(
-                  JSON.stringify({
-                    type: "chunk",
-                    clientId,
-                    filename: file.name,
-                    index: chunkIndex,
-                    content: Array.from(new Uint8Array(chunk)),
-                    last: isLastChunk,
-                  })
-                );
-
-                chunkIndex++;
-
-                if (isLastChunk) {
-                  console.log("File upload completed");
-                }
-              }
-            };
-
-            reader.readAsArrayBuffer(file);
-          });
-        }
-
-        // 새로운 파일 목록을 받았을 때
-        if (data.type === "videoList") {
-          const fileList = document.querySelector("#file-list");
-          fileList.innerHTML = ""; // 기존 목록 삭제
-          data.videoList.forEach((filename) => {
-            const option = document.createElement("option");
-            option.value = filename;
-            option.textContent = filename;
-            fileList.appendChild(option);
-          });
-        }
-
-        const playSelectedButton = document.querySelector(
-          "#play-selected-button"
-        );
-        playSelectedButton.addEventListener("click", () => {
-          const fileList = document.querySelector("#file-list");
-          const selectedFile = fileList.value;
-          if (selectedFile) {
-            //서버에 저장된 파일경로를 사용하는건 보안 문제가 있대.ㅠ
-            const videoSrc = `/uploaded_files/${selectedFile}`;
-            videoPlayer.src = videoSrc;
-            videoPlayer.load();
-            videoPlayer.play();
-          }
-        });
-      });
-
-      socket.addEventListener("close", (event) => {
-        console.log("Disconnected from server");
-      });
-    </script>
   </body>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="./index.js" defer></script>
 </html>
